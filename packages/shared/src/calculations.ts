@@ -149,9 +149,10 @@ export function forecastExpenseMonths(
   horizonMonths = 3
 ): ExpenseForecastMonth[] {
   const startMonth = monthKeyToUtcDate(monthKey);
-  const monthKeys = Array.from({ length: Math.max(1, horizonMonths) }, (_value, index) =>
-    formatMonthKeyUtc(addMonthsUtc(startMonth, index))
-  );
+  const monthKeys: string[] = [];
+  for (let index = 0; index < Math.max(1, horizonMonths); index += 1) {
+    monthKeys.push(formatMonthKeyUtc(addMonthsUtc(startMonth, index)));
+  }
 
   const rows = monthKeys.map((month) => ({ month, planned: 0, paid: 0, total: 0 }));
 
