@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../generated/postgres"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model UserProfile {
+  id                String             @id @default(cuid())
+  profilePreset     String             @default("FRENCH_FREELANCER")
+  fullName          String
+  legalStatus       String
+  siren             String?
+  siret             String?
+  commercialRegisterNumber String?
+  taxId             String?
+  addressLine1      String
+  addressLine2      String?
+  postalCode        String
+  city              String
+  country           String             @default("France")
+  email             String?
+  phone             String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  freelanceSettings FreelanceSettings?
+  financeSettings   FinanceSettings?
+  invoiceSettings   InvoiceSettings?
+  googleDriveConnection GoogleDriveConnection?
+  clients           Client[]
+  contracts         Contract[]
+  workDays          WorkDay[]
+  invoices          Invoice[]
+  expenses          Expense[]
+  paymentLogs       PaymentLog[]
+  assistantConversations AssistantConversation[]
+}
+
+model FreelanceSettings {
+  id                      String      @id @default(cuid())
+  userProfileId           String      @unique
+  userProfile             UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  defaultDailyRate        Decimal     @default(0)
+  standardWorkingDays     Int         @default(20)
+  timezone                String      @default("Europe/Paris")
+  defaultCurrency         String      @default("EUR")
+  createdAt               DateTime    @default(now())
+  updatedAt               DateTime    @updatedAt
+}
+
+model FinanceSettings {
+  id                       String      @id @default(cuid())
+  userProfileId            String      @unique
+  userProfile              UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  monthlyEssentialExpenses Decimal     @default(0)
+  monthlyWants             Decimal     @default(0)
+  emergencyFundMonths      Int         @default(6)
+  currentReserves          Decimal     @default(0)
+  savingsGoalMonthly       Decimal     @default(0)
+  needsPercent             Decimal     @default(50)
+  wantsPercent             Decimal     @default(30)
+  savingsPercent           Decimal     @default(20)
+  monthlyLifestyleTarget   Decimal     @default(0)
+  urssafReservePercent     Decimal     @default(25.6)
+  incomeTaxReservePercent  Decimal     @default(2.2)
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+}
+
+model InvoiceSettings {
+  id                     String      @id @default(cuid())
+  userProfileId          String      @unique
+  userProfile            UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  invoicePrefix          String      @default("INV")
+  lastInvoiceSequence    Int         @default(0)
+  defaultCurrency        String      @default("EUR")
+  defaultPaymentTermsDays Int         @default(30)
+  latePaymentRate        Decimal     @default(12)
+  recoveryChargeAmount   Decimal     @default(40)
+  vatMode                String      @default("EXEMPT")
+  vatRate                Decimal     @default(20)
+  vatExemptionMention    String      @default("TVA non applicable, art. 293 B du CGI")
+  logoUrl                String?
+  signatureUrl           String?
+  primaryColor           String      @default("#17324d")
+  secondaryColor         String      @default("#eaf0f6")
+  bankDetails            String?
+  termsAndConditions     String?
+  createdAt              DateTime    @default(now())
+  updatedAt              DateTime    @updatedAt
+}
+
+model GoogleDriveConnection {
+  id                 String      @id @default(cuid())
+  userProfileId      String      @unique
+  userProfile        UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  clientId           String?
+  clientSecret       String?
+  folderId           String?
+  refreshToken       String?
+  connectedEmail     String?
+  connectedAt        DateTime?
+  oauthState         String?
+  oauthStateExpiresAt DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+}
+
+model Client {
+  id             String      @id @default(cuid())
+  userProfileId   String
+  userProfile     UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  name           String
+  legalName      String?
+  addressLine1   String
+  addressLine2   String?
+  postalCode     String
+  city           String
+  country        String      @default("France")
+  vatNumber      String?
+  email          String?
+  contactName    String?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  contracts      Contract[]
+  invoices       Invoice[]
+  workDays       WorkDay[]
+  paymentLogs    PaymentLog[]
+}
+
+model Contract {
+  id                     String              @id @default(cuid())
+  userProfileId          String
+  clientId               String
+  userProfile            UserProfile         @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  client                 Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  title                  String
+  paymentType            String              @default("DAILY")
+  startDate              DateTime
+  endDate                DateTime?
+  dailyRate              Decimal?
+  monthlyRetainerAmount  Decimal?
+  fixedProjectAmount     Decimal?
+  fixedProjectDate       DateTime?
+  billingDayOfMonth      Int?
+  active                 Boolean             @default(true)
+  notes                  String?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  workDays               WorkDay[]
+  invoices               Invoice[]
+}
+
+model WorkDay {
+  id             String       @id @default(cuid())
+  userProfileId   String
+  userProfile     UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  clientId       String?
+  contractId     String?
+  invoiceId      String?
+  client         Client?      @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  contract       Contract?    @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  invoice        Invoice?     @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  workDate       DateTime
+  status         String        @default("WORKING")
+  dailyRate      Decimal?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userProfileId, workDate])
+  @@index([contractId])
+  @@index([clientId])
+  @@index([invoiceId])
+}
+
+model Expense {
+  id            String      @id @default(cuid())
+  userProfileId  String
+  userProfile    UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  title         String
+  category      String
+  amount        Decimal
+  dueDate       DateTime
+  recurrence    String      @default("ONE_TIME")
+  status        String      @default("PLANNED")
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userProfileId, dueDate])
+  @@index([userProfileId, status])
+}
+
+model AssistantConversation {
+  id            String            @id @default(cuid())
+  userProfileId String
+  userProfile   UserProfile        @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  title         String            @default("Accounting assistant")
+  isPinned      Boolean           @default(false)
+  isArchived    Boolean           @default(false)
+  memorySummary String?
+  lastMessageAt DateTime?
+  messages      AssistantMessage[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userProfileId, isPinned, lastMessageAt])
+}
+
+model AssistantMessage {
+  id                    String               @id @default(cuid())
+  assistantConversationId String
+  assistantConversation  AssistantConversation @relation(fields: [assistantConversationId], references: [id], onDelete: Cascade)
+  role                  String
+  content               String
+  actionPlanJson        String?
+  usedAi                Boolean              @default(false)
+  createdAt             DateTime             @default(now())
+
+  @@index([assistantConversationId, createdAt])
+}
+
+model Invoice {
+  id                      String       @id @default(cuid())
+  userProfileId           String
+  clientId                String
+  contractId              String?
+  userProfile             UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  client                  Client       @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  contract                Contract?    @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  invoiceSeries           String       @default("INV")
+  invoiceNumber           String       @unique
+  sequenceNumber          Int
+  issueDate               DateTime
+  servicePeriodStart      DateTime
+  servicePeriodEnd        DateTime
+  subtotal                Decimal      @default(0)
+  vatMode                 String       @default("EXEMPT")
+  vatRate                 Decimal      @default(0)
+  vatAmount               Decimal      @default(0)
+  total                   Decimal      @default(0)
+  currency                String       @default("EUR")
+  status                  String       @default("DRAFT")
+  paymentTermsDays        Int
+  latePaymentRate         Decimal
+  recoveryChargeAmount    Decimal
+  vatExemptionMention     String?
+  issuerName              String
+  issuerLegalStatus       String
+  issuerSiren             String?
+  issuerSiret             String?
+  issuerCommercialRegisterNumber String?
+  issuerTaxId             String?
+  issuerAddressLine1      String
+  issuerAddressLine2      String?
+  issuerPostalCode        String
+  issuerCity              String
+  issuerCountry           String
+  clientName              String
+  clientLegalName         String?
+  clientAddressLine1      String
+  clientAddressLine2      String?
+  clientPostalCode        String
+  clientCity              String
+  clientCountry           String
+  clientVatNumber         String?
+  notes                   String?
+  paidAt                  DateTime?
+  dueDate                 DateTime?
+  pdfPath                 String?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  lines                   InvoiceLine[]
+  workDays                WorkDay[]
+  paymentLogs             PaymentLog[]
+
+  @@index([clientId])
+  @@index([contractId])
+  @@index([status])
+  @@unique([invoiceSeries, sequenceNumber])
+}
+
+model PaymentLog {
+  id           String      @id @default(cuid())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  invoiceId    String?
+  clientId     String?
+  invoice      Invoice?    @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  client       Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  kind         String      @default("INVOICE_PAYMENT")
+  title        String
+  amount       Decimal
+  currency     String      @default("EUR")
+  receivedAt   DateTime
+  method       String?
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([userProfileId, receivedAt])
+  @@index([invoiceId])
+  @@index([clientId])
+}
+
+model InvoiceLine {
+  id             String      @id @default(cuid())
+  invoiceId      String
+  invoice        Invoice     @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description    String
+  quantityDays   Decimal
+  unitPrice      Decimal
+  total          Decimal
+  sortOrder      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([invoiceId])
+}

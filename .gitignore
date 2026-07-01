@@ -1,0 +1,14 @@
+node_modules
+dist
+build
+.env
+.env.*
+*.db
+*.sqlite
+*.sqlite-journal
+apps/server/prisma/dev.db
+apps/server/uploads
+apps/web/.vite
+coverage
+*.log
+.codex-remote-attachments

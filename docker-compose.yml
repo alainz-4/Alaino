@@ -1,0 +1,21 @@
+services:
+  alaino:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: file:./data/dev.db
+      # Replace these with your public domain once the app is hosted.
+      # Example:
+      # GOOGLE_DRIVE_REDIRECT_URI: https://your-domain.com/api/settings/google-drive/callback
+      # GOOGLE_DRIVE_SUCCESS_REDIRECT_URL: https://your-domain.com/settings?tab=backup
+    volumes:
+      - alaino-data:/app/apps/server/data
+      - alaino-uploads:/app/apps/server/uploads
+    restart: unless-stopped
+
+volumes:
+  alaino-data:
+  alaino-uploads:

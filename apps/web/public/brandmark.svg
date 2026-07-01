@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="72" y1="56" x2="448" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17324D" />
+      <stop offset="0.55" stop-color="#254E72" />
+      <stop offset="1" stop-color="#D97C44" />
+    </linearGradient>
+    <linearGradient id="page" x1="164" y1="170" x2="352" y2="386" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" />
+      <stop offset="1" stop-color="#F7F3ED" />
+    </linearGradient>
+    <filter id="shadow" x="84" y="100" width="344" height="344" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#132131" flood-opacity="0.24" />
+    </filter>
+  </defs>
+  <rect x="24" y="24" width="464" height="464" rx="116" fill="url(#bg)" />
+  <circle cx="136" cy="130" r="66" fill="#FFFFFF" fill-opacity="0.08" />
+  <circle cx="392" cy="98" r="88" fill="#FFFFFF" fill-opacity="0.08" />
+  <circle cx="410" cy="392" r="104" fill="#FFFFFF" fill-opacity="0.05" />
+  <g filter="url(#shadow)">
+    <rect x="130" y="118" width="244" height="286" rx="42" fill="url(#page)" />
+  </g>
+  <rect x="172" y="154" width="60" height="10" rx="5" fill="#D97C44" />
+  <rect x="172" y="178" width="116" height="10" rx="5" fill="#DCE5EE" />
+  <rect x="172" y="200" width="86" height="10" rx="5" fill="#DCE5EE" />
+  <rect x="172" y="222" width="98" height="10" rx="5" fill="#DCE5EE" />
+  <path d="M172 326C186 310 204 300 219 292C238 282 249 266 264 240C278 214 294 195 321 176" stroke="#17324D" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" />
+  <circle cx="321" cy="176" r="16" fill="#D97C44" />
+  <circle cx="219" cy="292" r="10" fill="#17324D" />
+  <circle cx="264" cy="240" r="10" fill="#17324D" />
+  <circle cx="242" cy="274" r="8" fill="#17324D" fill-opacity="0.9" />
+  <rect x="172" y="346" width="126" height="14" rx="7" fill="#17324D" fill-opacity="0.12" />
+</svg>
