@@ -131,6 +131,17 @@ export async function createGoogleDriveAuthUrl() {
   return `${GOOGLE_DRIVE_AUTH_URL}?${params.toString()}`;
 }
 
+async function findGoogleDriveConnectionByState(state: string) {
+  return prisma.googleDriveConnection.findFirst({
+    where: {
+      oauthState: state,
+      oauthStateExpiresAt: {
+        gt: new Date()
+      }
+    }
+  });
+}
+
 async function exchangeGoogleDriveCode(params: {
   clientId: string;
   clientSecret: string;
@@ -178,7 +189,9 @@ async function fetchGoogleDriveUserInfo(accessToken: string) {
 }
 
 export async function completeGoogleDriveAuth(params: { code: string; state: string }) {
-  const connection = await ensureGoogleDriveConnection();
+  const connection =
+    (await findGoogleDriveConnectionByState(params.state)) ?? (await ensureGoogleDriveConnection());
+
   if (!connection.clientId || !connection.clientSecret) {
     throw new AppError(400, "Google Drive credentials are not configured.");
   }
