@@ -26,9 +26,12 @@ import {
 } from "../lib/backup.js";
 import { env } from "../env.js";
 import {
+  buildGoogleDriveAuthCookieClearHeaders,
+  buildGoogleDriveAuthCookieHeaders,
   clearGoogleDriveConnection,
   completeGoogleDriveAuth,
   createGoogleDriveAuthUrl,
+  parseCookieHeader,
   saveGoogleDriveConfiguration,
   serializeGoogleDriveStatus,
   uploadBackupArchiveToGoogleDrive
@@ -147,8 +150,9 @@ router.put(
 router.post(
   "/google-drive/connect",
   asyncRoute(async (_req, res) => {
-    const authUrl = await createGoogleDriveAuthUrl();
-    res.json({ authUrl });
+    const auth = await createGoogleDriveAuthUrl();
+    res.setHeader("Set-Cookie", buildGoogleDriveAuthCookieHeaders(auth));
+    res.json({ authUrl: auth.authUrl });
   })
 );
 
@@ -157,12 +161,20 @@ router.get(
   asyncRoute(async (req, res) => {
     const code = typeof req.query.code === "string" ? req.query.code : "";
     const state = typeof req.query.state === "string" ? req.query.state : "";
+    const cookies = parseCookieHeader(req.headers.cookie);
 
     if (!code || !state) {
       throw new AppError(400, "Missing Google Drive authorization code.");
     }
 
-    await completeGoogleDriveAuth({ code, state });
+    await completeGoogleDriveAuth({
+      code,
+      state,
+      connectionId: cookies.alaino_google_drive_connection ?? null,
+      stateCookie: cookies.alaino_google_drive_state ?? null
+    });
+
+    res.setHeader("Set-Cookie", buildGoogleDriveAuthCookieClearHeaders());
 
     const successUrl = new URL(env.googleDriveSuccessRedirectUrl);
     successUrl.searchParams.set("googleDrive", "connected");

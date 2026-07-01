@@ -14,6 +14,10 @@ const GOOGLE_DRIVE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_DRIVE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_DRIVE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 const GOOGLE_DRIVE_SCOPES = env.googleDriveScopes.split(/\s+/).filter(Boolean);
+const GOOGLE_DRIVE_AUTH_COOKIE_PATH = "/api/settings/google-drive";
+const GOOGLE_DRIVE_AUTH_COOKIE_MAX_AGE_SECONDS = 10 * 60;
+const GOOGLE_DRIVE_STATE_COOKIE = "alaino_google_drive_state";
+const GOOGLE_DRIVE_CONNECTION_COOKIE = "alaino_google_drive_connection";
 
 export type GoogleDriveStatus = {
   clientId: string | null;
@@ -26,6 +30,70 @@ export type GoogleDriveStatus = {
   oauthConfigured: boolean;
   redirectUri: string;
 };
+
+export function parseCookieHeader(cookieHeader: string | undefined | null) {
+  const result: Record<string, string> = {};
+  if (!cookieHeader) {
+    return result;
+  }
+
+  for (const part of cookieHeader.split(";")) {
+    const [rawKey, ...rawValueParts] = part.trim().split("=");
+    if (!rawKey) {
+      continue;
+    }
+
+    result[decodeURIComponent(rawKey)] = decodeURIComponent(rawValueParts.join("=") || "");
+  }
+
+  return result;
+}
+
+function buildAuthCookie(name: string, value: string) {
+  const parts = [
+    `${name}=${encodeURIComponent(value)}`,
+    `Path=${GOOGLE_DRIVE_AUTH_COOKIE_PATH}`,
+    `Max-Age=${GOOGLE_DRIVE_AUTH_COOKIE_MAX_AGE_SECONDS}`,
+    "HttpOnly",
+    "SameSite=Lax"
+  ];
+
+  if (env.nodeEnv === "production") {
+    parts.push("Secure");
+  }
+
+  return parts.join("; ");
+}
+
+function buildClearedAuthCookie(name: string) {
+  const parts = [
+    `${name}=`,
+    `Path=${GOOGLE_DRIVE_AUTH_COOKIE_PATH}`,
+    "Max-Age=0",
+    "HttpOnly",
+    "SameSite=Lax"
+  ];
+
+  if (env.nodeEnv === "production") {
+    parts.push("Secure");
+  }
+
+  return parts.join("; ");
+}
+
+export function buildGoogleDriveAuthCookieHeaders(params: { state: string; connectionId: string }) {
+  return [
+    buildAuthCookie(GOOGLE_DRIVE_STATE_COOKIE, params.state),
+    buildAuthCookie(GOOGLE_DRIVE_CONNECTION_COOKIE, params.connectionId)
+  ];
+}
+
+export function buildGoogleDriveAuthCookieClearHeaders() {
+  return [
+    buildClearedAuthCookie(GOOGLE_DRIVE_STATE_COOKIE),
+    buildClearedAuthCookie(GOOGLE_DRIVE_CONNECTION_COOKIE)
+  ];
+}
 
 export async function ensureGoogleDriveConnection(db: WorkspaceDb = prisma) {
   const profile = await ensureWorkspaceProfile(db);
@@ -128,7 +196,11 @@ export async function createGoogleDriveAuthUrl() {
     state
   });
 
-  return `${GOOGLE_DRIVE_AUTH_URL}?${params.toString()}`;
+  return {
+    authUrl: `${GOOGLE_DRIVE_AUTH_URL}?${params.toString()}`,
+    state,
+    connectionId: connection.id
+  };
 }
 
 async function findGoogleDriveConnectionByState(state: string) {
@@ -188,15 +260,33 @@ async function fetchGoogleDriveUserInfo(accessToken: string) {
   return (await response.json()) as { email?: string; name?: string };
 }
 
-export async function completeGoogleDriveAuth(params: { code: string; state: string }) {
-  const connection =
-    (await findGoogleDriveConnectionByState(params.state)) ?? (await ensureGoogleDriveConnection());
+export async function completeGoogleDriveAuth(params: {
+  code: string;
+  state: string;
+  connectionId?: string | null;
+  stateCookie?: string | null;
+}) {
+  const cookieStateMatches = Boolean(params.stateCookie && params.stateCookie === params.state);
+  const connectionsToTry = [
+    params.connectionId ? await prisma.googleDriveConnection.findUnique({ where: { id: params.connectionId } }) : null,
+    await findGoogleDriveConnectionByState(params.state),
+    await ensureGoogleDriveConnection()
+  ];
+  const connection = connectionsToTry.find((candidate): candidate is GoogleDriveConnection => Boolean(candidate));
+
+  if (!connection) {
+    throw new AppError(400, "Google Drive account could not be found. Please reconnect and try again.");
+  }
 
   if (!connection.clientId || !connection.clientSecret) {
     throw new AppError(400, "Google Drive credentials are not configured.");
   }
 
-  if (!connection.oauthState || connection.oauthState !== params.state) {
+  const storedStateMatches = connection.oauthState === params.state;
+  const storedStateValid = Boolean(connection.oauthState && storedStateMatches);
+  const fallbackStateMatches = cookieStateMatches;
+
+  if (!storedStateValid && !fallbackStateMatches) {
     throw new AppError(400, "Invalid Google Drive authorization state.");
   }
 
