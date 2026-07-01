@@ -9,6 +9,7 @@ COPY packages ./packages
 COPY apps ./apps
 COPY scripts ./scripts
 
+ENV DATABASE_URL=file:./build.db
 RUN pnpm install --frozen-lockfile
 RUN pnpm --dir apps/server prisma:generate:all
 RUN pnpm build
