@@ -67,7 +67,9 @@ const DEFAULT_INVOICE_SETTINGS = {
 };
 
 export async function ensureWorkspaceProfile(db: WorkspaceDb = prisma) {
-  const existing = await db.userProfile.findFirst({ orderBy: { createdAt: "asc" } });
+  const existing = await db.userProfile.findFirst({
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }]
+  });
   if (existing) {
     return existing;
   }
