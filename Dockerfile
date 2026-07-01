@@ -24,4 +24,4 @@ WORKDIR /app/apps/server
 ENV NODE_ENV=production
 EXPOSE 3001
 
-CMD ["sh", "-c", "pnpm prisma:deploy:postgres && node dist/index.js"]
+CMD ["sh", "-c", "pnpm prisma:deploy:postgres && node dist/apps/server/src/index.js"]
