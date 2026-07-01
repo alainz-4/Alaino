@@ -129,67 +129,77 @@ async function readWorkspaceSnapshot(db: any): Promise<WorkspaceSnapshotLike> {
 export async function writeWorkspaceSnapshotToTarget(db: any, snapshot: WorkspaceSnapshotLike) {
   const normalized = normalizeSnapshot(snapshot);
 
-  await db.$transaction(async (tx: any) => {
-    await tx.assistantMessage.deleteMany();
-    await tx.assistantConversation.deleteMany();
-    await tx.paymentLog.deleteMany();
-    await tx.invoiceLine.deleteMany();
-    await tx.workDay.deleteMany();
-    await tx.invoice.deleteMany();
-    await tx.contract.deleteMany();
-    await tx.client.deleteMany();
-    await tx.expense.deleteMany();
-    await tx.googleDriveConnection.deleteMany();
-    await tx.invoiceSettings.deleteMany();
-    await tx.financeSettings.deleteMany();
-    await tx.freelanceSettings.deleteMany();
-    await tx.userProfile.deleteMany();
+  const operations: Array<ReturnType<typeof db.$transaction>[number]> = [];
 
-    if (normalized.userProfiles.length > 0) {
-      await tx.userProfile.createMany({ data: normalized.userProfiles as Prisma.UserProfileCreateManyInput[] });
-    }
-    if (normalized.freelanceSettings.length > 0) {
-      await tx.freelanceSettings.createMany({ data: normalized.freelanceSettings as Prisma.FreelanceSettingsCreateManyInput[] });
-    }
-    if (normalized.financeSettings.length > 0) {
-      await tx.financeSettings.createMany({ data: normalized.financeSettings as Prisma.FinanceSettingsCreateManyInput[] });
-    }
-    if (normalized.invoiceSettings.length > 0) {
-      await tx.invoiceSettings.createMany({ data: normalized.invoiceSettings as Prisma.InvoiceSettingsCreateManyInput[] });
-    }
-    if (normalized.googleDriveConnections.length > 0) {
-      await tx.googleDriveConnection.createMany({ data: normalized.googleDriveConnections as Prisma.GoogleDriveConnectionCreateManyInput[] });
-    }
-    if (normalized.clients.length > 0) {
-      await tx.client.createMany({ data: normalized.clients as Prisma.ClientCreateManyInput[] });
-    }
-    if (normalized.contracts.length > 0) {
-      await tx.contract.createMany({ data: normalized.contracts as Prisma.ContractCreateManyInput[] });
-    }
-    if (normalized.invoices.length > 0) {
-      await tx.invoice.createMany({ data: normalized.invoices as Prisma.InvoiceCreateManyInput[] });
-    }
-    if (normalized.invoiceLines.length > 0) {
-      await tx.invoiceLine.createMany({ data: normalized.invoiceLines as Prisma.InvoiceLineCreateManyInput[] });
-    }
-    if (normalized.workDays.length > 0) {
-      await tx.workDay.createMany({ data: normalized.workDays as Prisma.WorkDayCreateManyInput[] });
-    }
-    if (normalized.expenses.length > 0) {
-      await tx.expense.createMany({ data: normalized.expenses as Prisma.ExpenseCreateManyInput[] });
-    }
-    if (normalized.assistantConversations.length > 0) {
-      await tx.assistantConversation.createMany({
+  operations.push(
+    db.assistantMessage.deleteMany(),
+    db.assistantConversation.deleteMany(),
+    db.paymentLog.deleteMany(),
+    db.invoiceLine.deleteMany(),
+    db.workDay.deleteMany(),
+    db.invoice.deleteMany(),
+    db.contract.deleteMany(),
+    db.client.deleteMany(),
+    db.expense.deleteMany(),
+    db.googleDriveConnection.deleteMany(),
+    db.invoiceSettings.deleteMany(),
+    db.financeSettings.deleteMany(),
+    db.freelanceSettings.deleteMany(),
+    db.userProfile.deleteMany()
+  );
+
+  if (normalized.userProfiles.length > 0) {
+    operations.push(db.userProfile.createMany({ data: normalized.userProfiles as Prisma.UserProfileCreateManyInput[] }));
+  }
+  if (normalized.freelanceSettings.length > 0) {
+    operations.push(
+      db.freelanceSettings.createMany({ data: normalized.freelanceSettings as Prisma.FreelanceSettingsCreateManyInput[] })
+    );
+  }
+  if (normalized.financeSettings.length > 0) {
+    operations.push(db.financeSettings.createMany({ data: normalized.financeSettings as Prisma.FinanceSettingsCreateManyInput[] }));
+  }
+  if (normalized.invoiceSettings.length > 0) {
+    operations.push(db.invoiceSettings.createMany({ data: normalized.invoiceSettings as Prisma.InvoiceSettingsCreateManyInput[] }));
+  }
+  if (normalized.googleDriveConnections.length > 0) {
+    operations.push(
+      db.googleDriveConnection.createMany({ data: normalized.googleDriveConnections as Prisma.GoogleDriveConnectionCreateManyInput[] })
+    );
+  }
+  if (normalized.clients.length > 0) {
+    operations.push(db.client.createMany({ data: normalized.clients as Prisma.ClientCreateManyInput[] }));
+  }
+  if (normalized.contracts.length > 0) {
+    operations.push(db.contract.createMany({ data: normalized.contracts as Prisma.ContractCreateManyInput[] }));
+  }
+  if (normalized.invoices.length > 0) {
+    operations.push(db.invoice.createMany({ data: normalized.invoices as Prisma.InvoiceCreateManyInput[] }));
+  }
+  if (normalized.invoiceLines.length > 0) {
+    operations.push(db.invoiceLine.createMany({ data: normalized.invoiceLines as Prisma.InvoiceLineCreateManyInput[] }));
+  }
+  if (normalized.workDays.length > 0) {
+    operations.push(db.workDay.createMany({ data: normalized.workDays as Prisma.WorkDayCreateManyInput[] }));
+  }
+  if (normalized.expenses.length > 0) {
+    operations.push(db.expense.createMany({ data: normalized.expenses as Prisma.ExpenseCreateManyInput[] }));
+  }
+  if (normalized.assistantConversations.length > 0) {
+    operations.push(
+      db.assistantConversation.createMany({
         data: normalized.assistantConversations as Prisma.AssistantConversationCreateManyInput[]
-      });
-    }
-    if (normalized.assistantMessages.length > 0) {
-      await tx.assistantMessage.createMany({ data: normalized.assistantMessages as Prisma.AssistantMessageCreateManyInput[] });
-    }
-    if (normalized.paymentLogs.length > 0) {
-      await tx.paymentLog.createMany({ data: normalized.paymentLogs as Prisma.PaymentLogCreateManyInput[] });
-    }
-  });
+      })
+    );
+  }
+  if (normalized.assistantMessages.length > 0) {
+    operations.push(db.assistantMessage.createMany({ data: normalized.assistantMessages as Prisma.AssistantMessageCreateManyInput[] }));
+  }
+  if (normalized.paymentLogs.length > 0) {
+    operations.push(db.paymentLog.createMany({ data: normalized.paymentLogs as Prisma.PaymentLogCreateManyInput[] }));
+  }
+
+  await db.$transaction(operations);
 }
 
 export async function importSqliteDatabaseToTarget(extractedDatabasePath: string) {
